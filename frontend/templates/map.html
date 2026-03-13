@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Select Water Location</title>
+
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+
+body{
+margin:0;
+font-family:"Segoe UI",sans-serif;
+background:linear-gradient(-45deg,#0f2027,#203a43,#2c5364,#1c92d2);
+background-size:400% 400%;
+animation:gradientMove 12s ease infinite;
+color:white;
+}
+
+@keyframes gradientMove{
+0%{background-position:0% 50%}
+50%{background-position:100% 50%}
+100%{background-position:0% 50%}
+}
+
+/* Page container */
+
+.container{
+width:90%;
+max-width:1100px;
+margin:auto;
+padding:40px 20px;
+}
+
+/* Title */
+
+h2{
+text-align:center;
+margin-bottom:25px;
+text-shadow:0 0 10px rgba(255,255,255,0.4);
+}
+
+/* Glass box */
+
+.glass{
+background:rgba(255,255,255,0.12);
+backdrop-filter:blur(14px);
+border-radius:18px;
+padding:25px;
+box-shadow:
+0 15px 35px rgba(0,0,0,0.35),
+inset 0 1px 1px rgba(255,255,255,0.2);
+border:1px solid rgba(255,255,255,0.2);
+margin-bottom:25px;
+}
+
+/* Map */
+
+#map{
+height:500px;
+border-radius:12px;
+overflow:hidden;
+}
+
+/* Coordinates box */
+
+.coord-box{
+display:flex;
+gap:20px;
+flex-wrap:wrap;
+margin-top:15px;
+}
+
+.coord{
+background:rgba(255,255,255,0.15);
+padding:12px 18px;
+border-radius:10px;
+}
+
+/* Inputs */
+
+input{
+padding:10px;
+border-radius:8px;
+border:none;
+margin-top:5px;
+width:180px;
+}
+
+/* Button */
+
+button{
+margin-top:15px;
+padding:12px 28px;
+font-size:16px;
+border:none;
+border-radius:30px;
+background:linear-gradient(135deg,#2ecc71,#27ae60);
+color:white;
+cursor:pointer;
+transition:0.3s;
+box-shadow:
+0 8px 20px rgba(0,0,0,0.3),
+0 0 10px rgba(46,204,113,0.5);
+}
+
+button:hover{
+transform:scale(1.05);
+box-shadow:
+0 10px 25px rgba(0,0,0,0.4),
+0 0 20px rgba(46,204,113,0.9);
+}
+
+/* Loading */
+
+.loading{
+display:none;
+margin-top:10px;
+font-weight:bold;
+color:#2ecc71;
+}
+
+/* Error box */
+
+#errorBox{
+background:#ffdddd;
+color:#a94442;
+padding:12px;
+border-radius:8px;
+margin-bottom:20px;
+}
+
+/* Satellite Loader */
+
+.satellite-loader{
+display:none;
+text-align:center;
+margin-bottom:15px;
+}
+
+.satellite-icon{
+font-size:40px;
+animation: satelliteFloat 2s ease-in-out infinite;
+}
+
+/* floating animation */
+
+@keyframes satelliteFloat{
+0%{transform:translateY(0)}
+50%{transform:translateY(-10px)}
+100%{transform:translateY(0)}
+}
+
+.satellite-loader p{
+margin-top:5px;
+font-weight:bold;
+color:#2ecc71;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Select Water Location</h2>
+
+{% if error_message %}
+<div id="errorBox">
+{{ error_message }}
+</div>
+{% endif %}
+
+<div class="glass">
+
+ <div id="satelliteLoader" class="satellite-loader">
+    <div class="satellite-icon">🛰</div>
+    <p>Fetching Satellite Data...</p>
+</div>
+    
+<div id="map"></div>
+
+</div>
+
+<div class="glass">
+
+<h3>Selected Coordinates</h3>
+
+<div class="coord-box">
+
+<div class="coord">
+<b>Latitude:</b>
+<span id="lat">Not selected</span>
+</div>
+
+<div class="coord">
+<b>Longitude:</b>
+<span id="lng">Not selected</span>
+</div>
+
+</div>
+
+<hr style="margin:20px 0;opacity:0.3;">
+
+<h3>Enter Coordinates Manually</h3>
+
+<label>Latitude</label><br>
+<input type="number" id="manual_lat" step="0.000001"><br><br>
+
+<label>Longitude</label><br>
+<input type="number" id="manual_lng" step="0.000001"><br>
+
+<button onclick="sendCoordinates()">
+Analyze Water Clarity
+</button>
+
+<div id="loadingMessage" class="loading">
+Fetching satellite data and analyzing water clarity...
+</div>
+
+</div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+const map = L.map('map').setView([20.5937,78.9629],5);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+attribution:'© OpenStreetMap contributors'
+}).addTo(map);
+
+let marker;
+
+map.on('click',function(e){
+
+const errorBox=document.getElementById("errorBox");
+if(errorBox){errorBox.remove();}
+
+const lat=e.latlng.lat.toFixed(6);
+const lng=e.latlng.lng.toFixed(6);
+
+if(marker){
+marker.setLatLng(e.latlng);
+}else{
+marker=L.marker(e.latlng).addTo(map);
+}
+
+document.getElementById("lat").innerText=lat;
+document.getElementById("lng").innerText=lng;
+
+});
+
+function sendCoordinates(){
+
+    let lat = document.getElementById("manual_lat").value;
+    let lng = document.getElementById("manual_lng").value;
+
+    if(!lat || !lng){
+        lat = document.getElementById("lat").innerText;
+        lng = document.getElementById("lng").innerText;
+    }
+
+    if(lat === "Not selected" || !lat || !lng){
+        alert("Please select a location on the map OR enter coordinates manually.");
+        return;
+    }
+
+
+
+    /* SHOW LOADING MESSAGE */
+    document.getElementById("loadingMessage").style.display="block";
+
+    /* OPTIONAL: disable button */
+    document.querySelector("button").disabled=true;
+
+    fetch("/receive-coordinates",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+            latitude:lat,
+            longitude:lng
+        })
+    })
+    .then(response=>{
+
+        if(response.redirected){
+            window.location.href=response.url;
+            return;
+        }
+
+        return response.text();
+    })
+    .then(html=>{
+
+        if(!html) return;
+
+        document.open();
+        document.write(html);
+        document.close();
+    })
+    .catch(error=>{
+        console.error(error);
+        alert("Prediction failed");
+    });
+
+}
+
+</script>
+
+</body>
+</html>

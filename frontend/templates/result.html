@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Water Clarity Result</title>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:"Segoe UI",sans-serif;
+}
+
+/* Animated Background */
+
+body{
+background: linear-gradient(-45deg,#0f2027,#203a43,#2c5364,#1c92d2);
+background-size:400% 400%;
+animation:gradientMove 12s ease infinite;
+padding:40px;
+color:white;
+}
+
+@keyframes gradientMove{
+0%{background-position:0% 50%}
+50%{background-position:100% 50%}
+100%{background-position:0% 50%}
+}
+
+/* Title */
+
+h1{
+text-align:center;
+margin-bottom:40px;
+text-shadow:0 0 15px rgba(255,255,255,0.3);
+}
+
+/* Glass Card */
+
+.card{
+background: rgba(255,255,255,0.12);
+backdrop-filter: blur(14px);
+border-radius:18px;
+padding:30px;
+margin-bottom:30px;
+
+box-shadow:
+0 15px 35px rgba(0,0,0,0.35),
+inset 0 1px 1px rgba(255,255,255,0.2);
+
+border:1px solid rgba(255,255,255,0.2);
+}
+
+/* Prediction Box */
+
+.prediction-box{
+padding:35px;
+border-radius:12px;
+text-align:center;
+font-size:28px;
+font-weight:bold;
+margin-bottom:25px;
+}
+
+.Fresh{
+background:linear-gradient(135deg,#2ecc71,#27ae60);
+}
+
+.Moderate{
+background:linear-gradient(135deg,#f1c40f,#f39c12);
+color:black;
+}
+
+.Turbid{
+background:linear-gradient(135deg,#e74c3c,#c0392b);
+}
+
+/* Metrics */
+
+.metrics{
+display:flex;
+justify-content:center;
+gap:40px;
+flex-wrap:wrap;
+margin-top:20px;
+}
+
+.metric-box{
+background:rgba(255,255,255,0.15);
+padding:20px;
+border-radius:12px;
+text-align:center;
+width:200px;
+}
+
+/* Confidence Bar */
+
+.confidence-container{
+width:100%;
+background:rgba(255,255,255,0.2);
+border-radius:20px;
+overflow:hidden;
+height:30px;
+margin-top:15px;
+}
+
+.confidence-bar{
+height:100%;
+width:0%;
+text-align:center;
+line-height:30px;
+color:white;
+font-weight:bold;
+border-radius:20px;
+transition:width 1.5s ease-in-out;
+}
+
+.confidence-bar.Fresh{background:#27ae60;}
+.confidence-bar.Moderate{background:#f39c12;color:black;}
+.confidence-bar.Turbid{background:#c0392b;}
+
+/* NDWI Gauge */
+
+.gauge{
+width:130px;
+height:130px;
+border-radius:50%;
+background:conic-gradient(#3498db 0%, #ecf0f1 0%);
+display:flex;
+align-items:center;
+justify-content:center;
+margin:15px auto;
+}
+
+.gauge-inner{
+width:95px;
+height:95px;
+background:white;
+color:black;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:bold;
+font-size:18px;
+}
+
+/* Lists */
+
+ul{
+line-height:1.7;
+}
+
+h2{
+margin-bottom:15px;
+}
+
+h2 i,h3 i{
+margin-right:8px;
+color:#2ecc71;
+}
+
+/* Button */
+
+button{
+padding:14px 30px;
+font-size:16px;
+border:none;
+border-radius:30px;
+background:linear-gradient(135deg,#2ecc71,#27ae60);
+color:white;
+cursor:pointer;
+transition:0.3s;
+box-shadow:0 8px 20px rgba(0,0,0,0.3);
+}
+
+button:hover{
+transform:scale(1.05);
+box-shadow:0 10px 30px rgba(0,0,0,0.4);
+}
+
+/* Responsive */
+
+@media(max-width:768px){
+
+.metrics{
+flex-direction:column;
+align-items:center;
+}
+
+.metric-box{
+width:80%;
+}
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1><i class="fas fa-water"></i> Water Clarity Assessment</h1>
+
+<!-- Location -->
+
+<div class="card">
+
+<h2><i class="fas fa-map-marker-alt"></i> Location Information</h2>
+
+<p><b>Place:</b> {{ location }}</p>
+<p><b>Latitude:</b> {{ latitude }}</p>
+<p><b>Longitude:</b> {{ longitude }}</p>
+
+</div>
+
+<!-- Prediction -->
+
+<div class="card">
+
+<div class="prediction-box {{ prediction }}">
+{{ prediction }}
+</div>
+
+<h3><i class="fas fa-chart-bar"></i> Model Confidence</h3>
+
+<div class="confidence-container">
+<div id="confidenceBar" class="confidence-bar {{ prediction }}">
+{{ confidence }}%
+</div>
+</div>
+
+<div class="metrics">
+
+<div class="metric-box">
+
+<i class="fas fa-chart-line"></i><br>
+<b>NDWI</b>
+
+<div class="gauge">
+<div class="gauge-inner" id="ndwiValue">
+{{ ndwi }}
+</div>
+</div>
+
+</div>
+
+<div class="metric-box">
+
+<i class="fas fa-sun"></i><br>
+<b>Red Reflectance</b><br>
+{{ red }}
+
+</div>
+
+</div>
+
+</div>
+
+<!-- Scientific Interpretation -->
+
+<div class="card">
+
+<h2><i class="fas fa-flask"></i> Scientific Interpretation</h2>
+
+<ul>
+
+<li><b>NDWI</b> measures water presence using Green and NIR bands.</li>
+
+{% if ndwi > 0.6 %}
+<li>High NDWI indicates strong water signal and likely clearer water.</li>
+{% elif ndwi > 0.3 %}
+<li>Moderate NDWI indicates detectable water with possible turbidity.</li>
+{% else %}
+<li>Low NDWI suggests weak water signal or sediment influence.</li>
+{% endif %}
+
+<br>
+
+{% if red < 100 %}
+<li>Low red reflectance indicates low suspended sediment.</li>
+{% elif red < 500 %}
+<li>Moderate red reflectance indicates sediment presence.</li>
+{% else %}
+<li>High red reflectance suggests heavy turbidity.</li>
+{% endif %}
+
+</ul>
+
+</div>
+
+<!-- Sector Recommendations -->
+
+<div class="card">
+
+<h2>Sector Recommendations</h2>
+
+<h3><i class="fas fa-seedling"></i> Agriculture</h3>
+
+<ul>
+{% if prediction == "Fresh" %}
+<li>Suitable for rice, wheat, vegetables and fruits.</li>
+{% elif prediction == "Moderate" %}
+<li>Suitable for maize, pulses and millets.</li>
+{% else %}
+<li>Pre-treatment required before irrigation.</li>
+{% endif %}
+</ul>
+
+<h3><i class="fas fa-hospital"></i> Medical & Public Health</h3>
+
+<ul>
+{% if prediction == "Fresh" %}
+<li>Low contamination risk.</li>
+{% elif prediction == "Moderate" %}
+<li>Possible microbial presence. Treatment recommended.</li>
+{% else %}
+<li>High risk of waterborne diseases if untreated.</li>
+{% endif %}
+</ul>
+
+<h3><i class="fas fa-fish"></i> Fisheries</h3>
+
+<ul>
+{% if prediction == "Fresh" %}
+<li>Good for aquaculture and fish farming.</li>
+{% elif prediction == "Moderate" %}
+<li>Suitable for hardy fish species.</li>
+{% else %}
+<li>Not ideal without water treatment.</li>
+{% endif %}
+</ul>
+
+</div>
+
+<center>
+
+<a href="/map">
+<button>Analyze Another Location</button>
+</a>
+
+</center>
+
+<script>
+
+/* Confidence bar animation */
+
+window.onload=function(){
+
+var bar=document.getElementById("confidenceBar");
+
+if(bar){
+
+var text=bar.innerText.replace('%','').trim();
+var value=parseFloat(text);
+
+if(!isNaN(value)){
+
+setTimeout(function(){
+bar.style.width=value+"%";
+},300);
+
+}
+
+}
+
+/* NDWI Gauge */
+
+var ndwiElement=document.getElementById("ndwiValue");
+
+if(ndwiElement){
+
+var ndwi=parseFloat(ndwiElement.innerText.trim());
+
+if(!isNaN(ndwi)){
+
+if(ndwi<0)ndwi=0;
+if(ndwi>1)ndwi=1;
+
+var percentage=ndwi*100;
+
+var gauge=ndwiElement.parentElement;
+
+setTimeout(function(){
+
+gauge.style.background=
+"conic-gradient(#3498db "+percentage+"%, #ecf0f1 "+percentage+"%)";
+
+},300);
+
+}
+
+}
+
+};
+
+</script>
+
+</body>
+</html>
